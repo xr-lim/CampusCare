@@ -1,73 +1,57 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import Login from '../views/Login.vue';
-import Register from '../views/Register.vue';
-import Dashboard from '../views/Dashboard.vue';
-import Unauthorized from '../views/Unauthorized.vue';
-
-function getUserFromToken() {
-  const token = localStorage.getItem('token');
-  if (!token) return null;
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(window.atob(base64)); // Contains: id, username, role
-  } catch (e) {
-    return null;
-  }
-}
+import { createRouter, createWebHistory } from 'vue-router'
+import MainLayout from '../layouts/MainLayout.vue'
+import LoginView from '../views/LoginView.vue'
+import RegisterView from '../views/RegisterView.vue'
+import ProfileView from '../views/ProfileView.vue'
+import HomeView from '../views/HomeView.vue'
 
 const routes = [
   {
-    path: '/login',
-    name: 'Login',
-    component: Login,
-    meta: { layout: 'AuthLayout', guestOnly: true }
+    path: '/',
+    component: MainLayout,
+    children: [
+      {
+        path: 'home',
+        name: 'Home',
+        component: HomeView,
+        meta:{requiresAuth:true}
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: ProfileView,
+        meta:{requiresAuth:true}
+      }
+      /*{
+        path: 'submit-report',
+        name: 'SubmitReport',
+        component: SubmitReportView // Injected automatically into <router-view />
+      },*/
+    ]
   },
+
   {
-    path: '/register',
-    name: 'Register',
-    component: Register,
-    meta: { layout: 'AuthLayout', guestOnly: true }
+    path:'/login',
+    component:LoginView
   },
+
   {
-    path: '/unauthorized',
-    name: 'Unauthorized',
-    component: Unauthorized,
-    meta: { layout: 'AuthLayout' }
-  },
-  {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
-    meta: { layout: 'MainLayout', requiresAuth: true }
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/login'
+    path:'/register',
+    component:RegisterView
   }
-];
+]
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-});
+const router = createRouter({history:createWebHistory(), routes})
 
-router.beforeEach((to, from, next) => {
-  const user = getUserFromToken();
+router.beforeEach((to,from,next)=>{
+  const token = localStorage.getItem('token')
 
-  if (to.meta.guestOnly && user) {
-    return next('/dashboard');
+  if(to.meta.requiresAuth && !token){
+    next('/login')
   }
-
-  if (to.meta.requiresAuth && !user) {
-    return next('/login');
+  else{
+    next()
   }
+})
 
-  if (to.meta.roles && (!user || !to.meta.roles.includes(user.role))) {
-    return next('/unauthorized');
-  }
-
-  next();
-});
-
-export default router;
+export default router

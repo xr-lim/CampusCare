@@ -11,23 +11,35 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('Student/Staff', 'Technician', 'Admin') NOT NULL DEFAULT 'Student/Staff',
+    role ENUM('Student', 'Staff', 'Technician', 'Admin') NOT NULL DEFAULT 'Student',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Username: admin | Password: password123
 INSERT INTO users (username, email, password, role) 
 VALUES (
     'admin', 
     'admin@campus.edu', 
-    '$2y$10$7rK1nZ3e2GkSFl.K9yvPze5mZJgT8p6A9Yf.gqR9eR8XU2HjKe2Ki', 
+    '$2y$10$QCFxpwph.3f/S9XgiMk/luU.rSwXPaYvM4wkDOGc48XrrXqSRCbgW', 
     'Admin'
 );
--- Username: tech1 | Password: password123
 INSERT INTO users (username, email, password, role) 
 VALUES (
     'tech1', 
     'tech1@campus.edu', 
-    '$2y$10$7rK1nZ3e2GkSFl.K9yvPze5mZJgT8p6A9Yf.gqR9eR8XU2HjKe2Ki', 
+    '$2y$10$QCFxpwph.3f/S9XgiMk/luU.rSwXPaYvM4wkDOGc48XrrXqSRCbgW', 
     'Technician'
+);
+INSERT INTO users (username, email, password, role) 
+VALUES (
+    'John Doe', 
+    'johndoe@campus.edu', 
+    '$2y$10$QCFxpwph.3f/S9XgiMk/luU.rSwXPaYvM4wkDOGc48XrrXqSRCbgW', 
+    'Staff'
+);
+INSERT INTO users (username, email, password, role) 
+VALUES (
+    'Jane Doe', 
+    'janedoe@campus.edu', 
+    '$2y$10$QCFxpwph.3f/S9XgiMk/luU.rSwXPaYvM4wkDOGc48XrrXqSRCbgW', 
+    'Student'
 );
