@@ -88,3 +88,36 @@ npm run dev
 ```
 3. Open your browser and navigate to the local address provided by Vite (typically http://localhost:5173).
 4. Test the registration or use the pre-seeded account credentials (admin@campus.edu / password123) to log in.
+
+## 🧱 Adding a New View Using the Shared Layout
+
+To keep the application layout consistent, all pages must be rendered inside the shared template structure (`MainLayout.vue`). This ensures your page automatically inherits the top Navigation Bar, the role-based Sidebar, and the theme without rewriting the structural code.
+
+* ### Create Your View Component
+Navigate to `src/views/` and create a new Vue component file for your feature module (e.g., `SubmitReportView.vue` or `AssignedTasksView.vue`). 
+
+Inside your file, write **only** the core body content of your workspace module. **Do not** re-import or manually add the navbar or sidebar elements here:
+
+```vue
+<template>
+  <div class="dashboard-card">
+    <h1>Your Module Title</h1>
+    <p>Start constructing your form fields, tables, or analytical data dashboards right here.</p>
+    
+    </div>
+</template>
+
+<script>
+export default {
+  name: 'YourModuleNameView',
+  data() {
+    return {
+      // Your module state data
+    }
+  }
+}
+</script>
+```
+
+* ### Use MessageBox instead of alert()
+Use the pre-built global toast component by injecting <MessageBox ref="msgBox" /> into your view markup and executing this.$refs.msgBox.show('Your custom text string here', 'success' | 'error').
