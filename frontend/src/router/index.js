@@ -8,6 +8,18 @@ import HomeView from '../views/HomeView.vue'
 const routes = [
   {
     path: '/',
+    redirect: '/login'
+  },
+  {
+    path:'/login',
+    component:LoginView
+  },
+  {
+    path:'/register',
+    component:RegisterView
+  },
+  {
+    path: '/',
     component: MainLayout,
     children: [
       {
@@ -28,29 +40,16 @@ const routes = [
         component: SubmitReportView // Injected automatically into <router-view />
       },*/
     ]
-  },
-
-  {
-    path:'/login',
-    component:LoginView
-  },
-
-  {
-    path:'/register',
-    component:RegisterView
   }
 ]
 
 const router = createRouter({history:createWebHistory(), routes})
 
-router.beforeEach((to,from,next)=>{
+router.beforeEach((to) => {
   const token = localStorage.getItem('token')
 
-  if(to.meta.requiresAuth && !token){
-    next('/login')
-  }
-  else{
-    next()
+  if (to.meta.requiresAuth && !token) {
+    return '/login'
   }
 })
 
