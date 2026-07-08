@@ -1,32 +1,34 @@
-import axios from 'axios'
+import api from './api'
 
-const API = 'http://localhost/CampusCare/backend/public'
-
-export const register = (data)=>
-{
-  return axios.post(
-    `${API}/register`,
-    data
-  )
+export const register = (data) => {
+    return api.post(
+        '/register',
+        data
+    )
 }
 
-export const login = (data)=>
-{
-  return axios.post(
-    `${API}/login`,
-    data
-  )
+export const login = (data) => {
+    return api.post(
+        '/login',
+        data
+    )
 }
 
-export const profile = () =>
-{
-  return axios.get(
-    `${API}/profile`,
-    {
-      headers:{
-        Authorization:
-        `Bearer ${localStorage.getItem('token')}`
-      }
-    }
-  )
+export const profile = () => {
+    return api.get(
+        '/profile'
+    )
+}
+
+export const updateProfile = (data) => {
+    return api.put(
+        '/profile',
+        data
+    )
+}
+
+export const deleteProfile = () => {
+    return api.delete(
+        '/profile'
+    )
 }

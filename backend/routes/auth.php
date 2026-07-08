@@ -48,11 +48,24 @@ $app->post('/register', function(Request $request, Response $response) use ($pdo
 $app->post('/login', function(Request $request, Response $response) use ($pdo) {
     $data = $request->getParsedBody();
 
+    $email = $data['email'] ?? null;
+    $password = $data['password'] ?? null;
+
+    if(!$email || !$password){
+        $response->getBody()->write(json_encode([
+            "message"=>"Email and password are required"
+        ]));
+
+        return $response
+            ->withHeader('Content-Type','application/json')
+            ->withStatus(400);
+    }
+
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email=?");
-    $stmt->execute([$data['email']]);
+    $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$user || !password_verify($data['password'], $user['password'])) {
+    if (!$user || !password_verify($password, $user['password'])) {
         $response->getBody()->write(json_encode([
             "message" => "Invalid credentials"
         ]));
@@ -62,8 +75,20 @@ $app->post('/login', function(Request $request, Response $response) use ($pdo) {
             ->withStatus(401);
     }
 
-    $secretKey = 'your_super_secret_key_that_is_at_least_32_characters_long_12345';
     $configFile = __DIR__ . '/../config/jwt.php';
+
+    if (!file_exists($configFile)) {
+        $response->getBody()->write(json_encode([
+            "message" => "JWT configuration missing"
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
+    }
+
+    $secretConfig = require $configFile;
+    $secretKey = $secretConfig['secret'];
 
     if (file_exists($configFile)) {
         $secretConfig = require $configFile;
@@ -89,6 +114,7 @@ $app->post('/login', function(Request $request, Response $response) use ($pdo) {
             "user" => [
                 "id" => $user['id'],
                 "username" => $user['username'],
+                "email" => $user['email'],
                 "role" => $user['role'] ?? 'student'
             ]
         ]));

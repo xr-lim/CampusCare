@@ -3,32 +3,51 @@
     <div class="sidebar-header">
       <span class="role-badge">{{ userRole }} Portal</span>
     </div>
-    
+
     <nav class="sidebar-menu">
-      <a href="/home" @click.prevent class="menu-item active">
-        <span class="icon">🏠</span> Home
-      </a>
+
+      <router-link to="/home" class="menu-item" active-class="active">
+        <i class="fas fa-house icon"></i>
+        Home
+      </router-link>
 
       <template v-if="userRole === 'student' || userRole === 'staff'">
-        <a href="#" @click.prevent class="menu-item">
-          <span class="icon">📝</span> Submit Report
-        </a>
-        <a href="#" @click.prevent class="menu-item">
-          <span class="icon">🔍</span> Track Status
-        </a>
+
+        <router-link to="/submit-report" class="menu-item" active-class="active">
+          <i class="fas fa-file-circle-plus icon"></i>
+          Submit Report
+        </router-link>
+
+        <router-link to="/track-status" class="menu-item" active-class="active">
+          <i class="fas fa-magnifying-glass icon"></i>
+          Track Status
+        </router-link>
+
       </template>
 
       <template v-if="userRole === 'technician'">
-        <a href="#" @click.prevent class="menu-item">
-          <span class="icon">🔧</span> Assigned Tasks
-        </a>
+
+        <router-link to="/assigned-tasks" class="menu-item" active-class="active">
+          <i class="fas fa-screwdriver-wrench icon"></i>
+          Assigned Tasks
+        </router-link>
+
       </template>
 
       <template v-if="userRole === 'admin'">
-        <a href="#" @click.prevent class="menu-item">
-          <span class="icon">📊</span> Maintenance Reports
-        </a>
+
+        <router-link to="/maintenance-reports" class="menu-item" active-class="active">
+          <i class="fas fa-chart-column icon"></i>
+          Maintenance Reports
+        </router-link>
+
       </template>
+
+      <router-link to="/profile" class="menu-item" active-class="active">
+        <i class="fas fa-user icon"></i>
+        Profile
+      </router-link>
+
     </nav>
   </aside>
 </template>
@@ -40,11 +59,15 @@ export default {
       userRole: 'student'
     }
   },
+
   mounted() {
     const savedUser = localStorage.getItem('user')
+
     if (savedUser) {
       const parsed = JSON.parse(savedUser)
-      this.userRole = parsed.role ? parsed.role.toLowerCase() : 'student'
+      this.userRole = parsed.role
+        ? parsed.role.toLowerCase()
+        : 'student'
     }
   }
 }
