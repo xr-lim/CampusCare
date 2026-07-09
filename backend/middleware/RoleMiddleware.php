@@ -5,7 +5,7 @@ class RoleMiddleware {
 
     public function __construct($roles)
     {
-        $this->roles = $roles;
+        $this->roles = array_map('strtolower', $roles);
     }
 
     public function __invoke($request,$handler)
@@ -33,8 +33,9 @@ class RoleMiddleware {
         }
 
         if(!in_array(
-            $user->role,
-            $this->roles
+            strtolower($user->role ?? ''),
+            $this->roles,
+            true
         ))
         {
             $response =
