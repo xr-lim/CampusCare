@@ -1,6 +1,6 @@
 -- Create the database if it doesn't exist yet
-CREATE DATABASE IF NOT EXISTS campus_maintenance;
-USE campus_maintenance;
+CREATE DATABASE IF NOT EXISTS campuscare;
+USE campuscare;
 
 -- Drop table if it exists to allow for a clean reset during development
 DROP TABLE IF EXISTS users;
