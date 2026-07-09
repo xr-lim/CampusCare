@@ -36,9 +36,14 @@
 
       <template v-if="userRole === 'admin'">
 
-        <router-link to="/maintenance-reports" class="menu-item" active-class="active">
-          <i class="fas fa-chart-column icon"></i>
-          Maintenance Reports
+        <router-link to="/admin/dashboard" class="menu-item" active-class="active">
+          <i class="fas fa-chart-pie icon"></i>
+          Admin Dashboard
+        </router-link>
+
+        <router-link to="/admin/requests" class="menu-item" active-class="active">
+          <i class="fas fa-clipboard-list icon"></i>
+          Manage Requests
         </router-link>
 
       </template>

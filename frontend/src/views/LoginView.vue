@@ -75,7 +75,8 @@
           localStorage.setItem('token', res.data.token)
           localStorage.setItem('user', JSON.stringify(res.data.user))
 
-          this.$router.push('/home')
+          const role = (res.data.user?.role || '').toLowerCase()
+          this.$router.push(role === 'admin' ? '/admin/dashboard' : '/home')
 
         } catch (error) {
           console.error(error)
