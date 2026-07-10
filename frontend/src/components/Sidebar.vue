@@ -13,14 +13,14 @@
 
       <template v-if="userRole === 'student' || userRole === 'staff'">
 
-        <router-link to="/submit-report" class="menu-item" active-class="active">
+        <router-link to="/submit-request" class="menu-item" active-class="active">
           <i class="fas fa-file-circle-plus icon"></i>
-          Submit Report
+          Submit Request
         </router-link>
 
-        <router-link to="/track-status" class="menu-item" active-class="active">
+        <router-link to="/my-requests" class="menu-item" active-class="active">
           <i class="fas fa-magnifying-glass icon"></i>
-          Track Status
+          My Requests
         </router-link>
 
       </template>

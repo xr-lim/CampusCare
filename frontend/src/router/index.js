@@ -11,6 +11,8 @@ import RegisterView from '../views/RegisterView.vue'
 //Common
 import ProfileView from '../views/ProfileView.vue'
 import HomeView from '../views/HomeView.vue'
+import SubmitRequestView from '../views/SubmitRequestView.vue'
+import MyRequestsView from '../views/MyRequestsView.vue'
 
 const routes = [
   {
@@ -47,6 +49,22 @@ const routes = [
         component: HomeView,
         meta:{
           requiresAuth:true
+        }
+      },
+      {
+        path: 'submit-request',
+        name: 'SubmitRequest',
+        component: SubmitRequestView,
+        meta: {
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'my-requests',
+        name: 'MyRequests',
+        component: MyRequestsView,
+        meta: {
+          requiresAuth: true
         }
       },
       {

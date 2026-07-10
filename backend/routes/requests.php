@@ -167,9 +167,45 @@ $app->get('/locations', function (Request $request, Response $response) use ($pd
 
 
 // 2. View My Requests (Read List)
-$app->get('/requests/my', function (Request $request, Response $response) {
-    $response->getBody()->write(json_encode(["message" => "View my requests route is registered"]));
-    return $response->withHeader('Content-Type', 'application/json');
+$app->get('/requests/my', function (Request $request, Response $response) use ($pdo) {
+    $jwt = $request->getAttribute('user');
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 
+                mr.id,
+                mr.title,
+                mr.description,
+                mr.priority,
+                mr.status,
+                mr.created_at,
+                c.name AS category_name,
+                l.name AS location_name
+            FROM maintenance_requests mr
+            INNER JOIN categories c ON mr.category_id = c.id
+            INNER JOIN locations l ON mr.location_id = l.id
+            WHERE mr.user_id = ?
+            ORDER BY mr.created_at DESC
+        ");
+
+        $stmt->execute([$jwt->id]);
+        $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $response->getBody()->write(json_encode($requests));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
+
+    } catch (PDOException $e) {
+        $response->getBody()->write(json_encode([
+            "message" => "Database error: " . $e->getMessage()
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
+    }
 })->add(new JwtMiddleware());
 
 // 3. View Request Details (Read Single)
