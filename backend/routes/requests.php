@@ -265,10 +265,118 @@ $app->get('/requests/{id}', function (Request $request, Response $response, arra
 })->add(new JwtMiddleware());
 
 // 4. Edit Pending Request (Update)
-$app->put('/requests/{id}', function (Request $request, Response $response, array $args) {
+$app->put('/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
+    $jwt = $request->getAttribute('user');
     $id = $args['id'];
-    $response->getBody()->write(json_encode(["message" => "Edit request route is registered for ID: " . $id]));
-    return $response->withHeader('Content-Type', 'application/json');
+    $data = $request->getParsedBody();
+
+    $errors = validateRequestData($data);
+
+    if (!empty($errors)) {
+        $response->getBody()->write(json_encode([
+            "message" => "Validation failed",
+            "errors" => $errors
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
+    }
+
+    try {
+        $checkStmt = $pdo->prepare("
+            SELECT id, status
+            FROM maintenance_requests
+            WHERE id = ?
+            AND user_id = ?
+        ");
+        $checkStmt->execute([$id, $jwt->id]);
+        $existingRequest = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$existingRequest) {
+            $response->getBody()->write(json_encode([
+                "message" => "Request not found"
+            ]));
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(404);
+        }
+
+        if ($existingRequest['status'] !== 'Pending') {
+            $response->getBody()->write(json_encode([
+                "message" => "Only pending requests can be edited"
+            ]));
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(403);
+        }
+
+        $categoryStmt = $pdo->prepare("SELECT COUNT(*) FROM categories WHERE id = ?");
+        $categoryStmt->execute([$data['category_id']]);
+
+        if ($categoryStmt->fetchColumn() == 0) {
+            $response->getBody()->write(json_encode([
+                "message" => "Invalid category selection."
+            ]));
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(400);
+        }
+
+        $locationStmt = $pdo->prepare("SELECT COUNT(*) FROM locations WHERE id = ?");
+        $locationStmt->execute([$data['location_id']]);
+
+        if ($locationStmt->fetchColumn() == 0) {
+            $response->getBody()->write(json_encode([
+                "message" => "Invalid location selection."
+            ]));
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(400);
+        }
+
+        $updateStmt = $pdo->prepare("
+            UPDATE maintenance_requests
+            SET title = ?,
+                description = ?,
+                priority = ?,
+                category_id = ?,
+                location_id = ?
+            WHERE id = ?
+            AND user_id = ?
+        ");
+
+        $updateStmt->execute([
+            trim($data['title']),
+            trim($data['description']),
+            trim($data['priority']),
+            $data['category_id'],
+            $data['location_id'],
+            $id,
+            $jwt->id
+        ]);
+
+        $response->getBody()->write(json_encode([
+            "message" => "Maintenance request updated successfully"
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
+
+    } catch (PDOException $e) {
+        $response->getBody()->write(json_encode([
+            "message" => "Database error: " . $e->getMessage()
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
+    }
 })->add(new JwtMiddleware());
 
 // 5. Cancel Pending Request (Delete/Cancel)

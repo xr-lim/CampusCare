@@ -14,6 +14,7 @@ import HomeView from '../views/HomeView.vue'
 import SubmitRequestView from '../views/SubmitRequestView.vue'
 import MyRequestsView from '../views/MyRequestsView.vue'
 import RequestDetailsView from '../views/RequestDetailsView.vue'
+import EditRequestView from '../views/EditRequestView.vue'
 
 const routes = [
   {
@@ -72,6 +73,14 @@ const routes = [
         path: 'requests/:id',
         name: 'RequestDetails',
         component: RequestDetailsView,
+        meta: {
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'requests/:id/edit',
+        name: 'EditRequest',
+        component: EditRequestView,
         meta: {
           requiresAuth: true
         }
