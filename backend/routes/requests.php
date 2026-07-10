@@ -121,6 +121,50 @@ if (!empty($errors)) {
     }
 })->add(new JwtMiddleware());
 
+$app->get('/categories', function (Request $request, Response $response) use ($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name");
+        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $response->getBody()->write(json_encode($categories));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
+
+    } catch (PDOException $e) {
+        $response->getBody()->write(json_encode([
+            "message" => "Database error: " . $e->getMessage()
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
+    }
+})->add(new JwtMiddleware());
+
+$app->get('/locations', function (Request $request, Response $response) use ($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT id, name FROM locations ORDER BY name");
+        $locations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $response->getBody()->write(json_encode($locations));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
+
+    } catch (PDOException $e) {
+        $response->getBody()->write(json_encode([
+            "message" => "Database error: " . $e->getMessage()
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
+    }
+})->add(new JwtMiddleware());
+
 
 // 2. View My Requests (Read List)
 $app->get('/requests/my', function (Request $request, Response $response) {
