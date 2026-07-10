@@ -6,6 +6,51 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 require_once '../middleware/JwtMiddleware.php';
 require_once '../config/database.php';
 
+function validateRequestData($data)
+{
+    $errors = [];
+
+    $title = isset($data['title']) ? trim($data['title']) : '';
+    $description = isset($data['description']) ? trim($data['description']) : '';
+    $priority = isset($data['priority']) ? trim($data['priority']) : '';
+    $category_id = $data['category_id'] ?? null;
+    $location_id = $data['location_id'] ?? null;
+
+    if ($title === '') {
+        $errors[] = "Title is required.";
+    } elseif (strlen($title) > 150) {
+        $errors[] = "Title must not exceed 150 characters.";
+    }
+
+    if ($description === '') {
+        $errors[] = "Description is required.";
+    } elseif (strlen($description) > 1000) {
+        $errors[] = "Description must not exceed 1000 characters.";
+    }
+
+    if (empty($category_id)) {
+        $errors[] = "Category is required.";
+    } elseif (!is_numeric($category_id)) {
+        $errors[] = "Category must be a valid number.";
+    }
+
+    if (empty($location_id)) {
+        $errors[] = "Location is required.";
+    } elseif (!is_numeric($location_id)) {
+        $errors[] = "Location must be a valid number.";
+    }
+
+    $allowedPriorities = ['Low', 'Medium', 'High'];
+
+    if ($priority === '') {
+        $errors[] = "Priority is required.";
+    } elseif (!in_array($priority, $allowedPriorities)) {
+        $errors[] = "Priority must be Low, Medium, or High.";
+    }
+
+    return $errors;
+}
+
 // 1. Submit Request (Create)
 $app->post('/requests', function (Request $request, Response $response) use ($pdo) {
     $jwt = $request->getAttribute('user'); // Extract decrypted user info from JWT
@@ -18,26 +63,18 @@ $app->post('/requests', function (Request $request, Response $response) use ($pd
     $location_id = $data['location_id'] ?? null;
 
     // Backend Input Validation
-    if (empty($title) || strlen($title) > 150) {
-        $response->getBody()->write(json_encode(["message" => "Title is required and must not exceed 150 characters."]));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-    }
-    if (empty($description)) {
-        $response->getBody()->write(json_encode(["message" => "Description is required."]));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-    }
-    if (!in_array($priority, ['Low', 'Medium', 'High'])) {
-        $response->getBody()->write(json_encode(["message" => "Priority must be Low, Medium, or High."]));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-    }
-    if (empty($category_id)) {
-        $response->getBody()->write(json_encode(["message" => "Category is required."]));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-    }
-    if (empty($location_id)) {
-        $response->getBody()->write(json_encode(["message" => "Location is required."]));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-    }
+    $errors = validateRequestData($data);
+
+if (!empty($errors)) {
+    $response->getBody()->write(json_encode([
+        "message" => "Validation failed",
+        "errors" => $errors
+    ]));
+
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(400);
+}
 
     // Verify if selected category and location exist in the database
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM categories WHERE id = ?");
