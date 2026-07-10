@@ -178,6 +178,8 @@ $app->get('/requests/my', function (Request $request, Response $response) use ($
                 mr.description,
                 mr.priority,
                 mr.status,
+                mr.category_id,
+                mr.location_id,
                 mr.created_at,
                 c.name AS category_name,
                 l.name AS location_name
@@ -380,8 +382,69 @@ $app->put('/requests/{id}', function (Request $request, Response $response, arra
 })->add(new JwtMiddleware());
 
 // 5. Cancel Pending Request (Delete/Cancel)
-$app->delete('/requests/{id}', function (Request $request, Response $response, array $args) {
+$app->delete('/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
+    $jwt = $request->getAttribute('user');
     $id = $args['id'];
-    $response->getBody()->write(json_encode(["message" => "Cancel request route is registered for ID: " . $id]));
-    return $response->withHeader('Content-Type', 'application/json');
+
+    try {
+        $checkStmt = $pdo->prepare("
+            SELECT id, status
+            FROM maintenance_requests
+            WHERE id = ?
+            AND user_id = ?
+        ");
+        $checkStmt->execute([$id, $jwt->id]);
+        $existingRequest = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$existingRequest) {
+            $response->getBody()->write(json_encode([
+                "message" => "Request not found"
+            ]));
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(404);
+        }
+
+        if ($existingRequest['status'] !== 'Pending') {
+            $response->getBody()->write(json_encode([
+                "message" => "Only pending requests can be cancelled"
+            ]));
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(403);
+        }
+
+        $updateStmt = $pdo->prepare("
+            UPDATE maintenance_requests
+            SET status = 'Cancelled'
+            WHERE id = ?
+            AND user_id = ?
+        ");
+        $updateStmt->execute([$id, $jwt->id]);
+
+        $logStmt = $pdo->prepare("
+            INSERT INTO status_updates (request_id, status, updated_by, update_notes)
+            VALUES (?, 'Cancelled', ?, 'Request cancelled by user.')
+        ");
+        $logStmt->execute([$id, $jwt->id]);
+
+        $response->getBody()->write(json_encode([
+            "message" => "Maintenance request cancelled successfully"
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
+
+    } catch (PDOException $e) {
+        $response->getBody()->write(json_encode([
+            "message" => "Database error: " . $e->getMessage()
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
+    }
 })->add(new JwtMiddleware());

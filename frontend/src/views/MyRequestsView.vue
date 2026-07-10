@@ -17,7 +17,7 @@
             <div v-for="request in requests" :key="request.id" class="request-item">
                 <div>
                     <h3>{{ request.title }}</h3>
-                    <p>{{ request.category_name }} · {{ request.location_name }}</p>
+                    <p>{{ request.category_name }} - {{ request.location_name }}</p>>
                     <p>
                         Priority: {{ request.priority }} |
                         Status: {{ request.status }} |
