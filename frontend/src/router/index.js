@@ -11,6 +11,8 @@ import RegisterView from '../views/RegisterView.vue'
 //Common
 import ProfileView from '../views/ProfileView.vue'
 import HomeView from '../views/HomeView.vue'
+import ManageCategoriesView from '../views/ManageCategoriesView.vue'
+import ManageLocationsView from '../views/ManageLocationsView.vue'
 
 const routes = [
   {
@@ -55,6 +57,24 @@ const routes = [
         component: ProfileView,
         meta:{
           requiresAuth:true
+        }
+      },
+      {
+        path: 'manage-categories',
+        name: 'ManageCategories',
+        component: ManageCategoriesView,
+        meta:{
+          requiresAuth:true,
+          role: 'Admin'
+        }
+      },
+      {
+        path: 'manage-locations',
+        name: 'ManageLocations',
+        component: ManageLocationsView,
+        meta:{
+          requiresAuth:true,
+          role: 'Admin'
         }
       }
     ]

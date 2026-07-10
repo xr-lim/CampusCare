@@ -12,6 +12,8 @@ $app->addBodyParsingMiddleware();
 
 require '../routes/auth.php';
 require '../routes/user.php';
+require '../routes/categories.php';
+require '../routes/locations.php';
 
 $app->options('/[{any:.+}]', function ($request, $response) {
     return $response;

@@ -47,3 +47,69 @@ api.interceptors.response.use(
 )
 
 export default api
+
+// ========== Categories ==========
+export const getCategories = async () => {
+    return api.get('/categories')
+}
+
+export const getCategory = async (id) => {
+    return api.get(`/categories/${id}`)
+}
+
+export const createCategory = async (data, token) => {
+    return api.post('/categories', data, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
+}
+
+export const updateCategory = async (id, data, token) => {
+    return api.put(`/categories/${id}`, data, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
+}
+
+export const deleteCategory = async (id, token) => {
+    return api.delete(`/categories/${id}`, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
+}
+
+// ========== Locations ==========
+export const getLocations = async () => {
+    return api.get('/locations')
+}
+
+export const getLocation = async (id) => {
+    return api.get(`/locations/${id}`)
+}
+
+export const createLocation = async (data, token) => {
+    return api.post('/locations', data, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
+}
+
+export const updateLocation = async (id, data, token) => {
+    return api.put(`/locations/${id}`, data, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
+}
+
+export const deleteLocation = async (id, token) => {
+    return api.delete(`/locations/${id}`, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
+}
