@@ -209,10 +209,59 @@ $app->get('/requests/my', function (Request $request, Response $response) use ($
 })->add(new JwtMiddleware());
 
 // 3. View Request Details (Read Single)
-$app->get('/requests/{id}', function (Request $request, Response $response, array $args) {
+$app->get('/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
+    $jwt = $request->getAttribute('user');
     $id = $args['id'];
-    $response->getBody()->write(json_encode(["message" => "View request details route is registered for ID: " . $id]));
-    return $response->withHeader('Content-Type', 'application/json');
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 
+                mr.id,
+                mr.title,
+                mr.description,
+                mr.priority,
+                mr.status,
+                mr.created_at,
+                mr.updated_at,
+                c.name AS category_name,
+                l.name AS location_name,
+                technician.username AS technician_name
+            FROM maintenance_requests mr
+            INNER JOIN categories c ON mr.category_id = c.id
+            INNER JOIN locations l ON mr.location_id = l.id
+            LEFT JOIN users technician ON mr.assigned_technician_id = technician.id
+            WHERE mr.id = ?
+            AND mr.user_id = ?
+        ");
+
+        $stmt->execute([$id, $jwt->id]);
+        $requestData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$requestData) {
+            $response->getBody()->write(json_encode([
+                "message" => "Request not found"
+            ]));
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(404);
+        }
+
+        $response->getBody()->write(json_encode($requestData));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
+
+    } catch (PDOException $e) {
+        $response->getBody()->write(json_encode([
+            "message" => "Database error: " . $e->getMessage()
+        ]));
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
+    }
 })->add(new JwtMiddleware());
 
 // 4. Edit Pending Request (Update)

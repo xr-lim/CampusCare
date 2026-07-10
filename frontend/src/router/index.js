@@ -13,6 +13,7 @@ import ProfileView from '../views/ProfileView.vue'
 import HomeView from '../views/HomeView.vue'
 import SubmitRequestView from '../views/SubmitRequestView.vue'
 import MyRequestsView from '../views/MyRequestsView.vue'
+import RequestDetailsView from '../views/RequestDetailsView.vue'
 
 const routes = [
   {
@@ -63,6 +64,14 @@ const routes = [
         path: 'my-requests',
         name: 'MyRequests',
         component: MyRequestsView,
+        meta: {
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'requests/:id',
+        name: 'RequestDetails',
+        component: RequestDetailsView,
         meta: {
           requiresAuth: true
         }
