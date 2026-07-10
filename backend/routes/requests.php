@@ -223,6 +223,8 @@ $app->get('/requests/{id}', function (Request $request, Response $response, arra
                 mr.description,
                 mr.priority,
                 mr.status,
+                mr.category_id,
+                mr.location_id,
                 mr.created_at,
                 mr.updated_at,
                 c.name AS category_name,
