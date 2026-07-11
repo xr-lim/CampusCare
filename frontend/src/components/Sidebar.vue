@@ -46,6 +46,16 @@
           Manage Requests
         </router-link>
 
+        <router-link to="/manage-categories" class="menu-item" active-class="active">
+          <i class="fas fa-tags icon"></i>
+          Manage Categories
+        </router-link>
+
+        <router-link to="/manage-locations" class="menu-item" active-class="active">
+          <i class="fas fa-location-dot icon"></i>
+          Manage Locations
+        </router-link>
+
       </template>
 
       <router-link to="/profile" class="menu-item" active-class="active">

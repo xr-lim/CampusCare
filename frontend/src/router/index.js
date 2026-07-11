@@ -14,6 +14,8 @@ import TechnicianRequestsView from '../views/TechnicianRequestsView.vue'
 import AdminDashboardView from '../views/AdminDashboardView.vue'
 import AdminRequestsView from '../views/AdminRequestsView.vue'
 import AdminRequestDetailView from '../views/AdminRequestDetailView.vue'
+import ManageCategoriesView from '../views/ManageCategoriesView.vue'
+import ManageLocationsView from '../views/ManageLocationsView.vue'
 
 const routes = [
   {
@@ -125,6 +127,24 @@ const routes = [
         meta: {
           requiresAuth: true,
           roles: ['Admin']
+        }
+      },
+      {
+        path: 'manage-categories',
+        name: 'ManageCategories',
+        component: ManageCategoriesView,
+        meta:{
+          requiresAuth:true,
+          role: 'Admin'
+        }
+      },
+      {
+        path: 'manage-locations',
+        name: 'ManageLocations',
+        component: ManageLocationsView,
+        meta:{
+          requiresAuth:true,
+          role: 'Admin'
         }
       }
     ]

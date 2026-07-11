@@ -5,6 +5,7 @@ class RoleMiddleware {
 
     public function __construct($roles)
     {
+        $roles = is_array($roles) ? $roles : [$roles];
         $this->roles = array_map('strtolower', $roles);
     }
 

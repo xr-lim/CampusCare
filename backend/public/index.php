@@ -14,6 +14,8 @@ require '../routes/auth.php';
 require '../routes/user.php';
 require '../routes/requests.php';
 require '../routes/admin.php';
+require '../routes/categories.php';
+require '../routes/locations.php';
 
 $app->options('/[{any:.+}]', function ($request, $response) {
     return $response;

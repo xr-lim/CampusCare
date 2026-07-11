@@ -1,0 +1,261 @@
+{
+  "info": {
+    "_postman_id": "campuscare-api-collection",
+    "name": "CampusCare API",
+    "description": "API collection for Campus Maintenance Request System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"testuser@campus.edu\",\n  \"password\": \"password123\",\n  \"role\": \"Student\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@campus.edu\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/categories",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/categories/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "categories", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Category (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer <your_admin_token>"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plumbing\",\n  \"description\": \"Water and toilet-related issues\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/categories",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Update Category (Admin Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer <your_admin_token>"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plumbing Issues\",\n  \"description\": \"Water, toilet, and sink-related problems\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/categories/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "categories", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Category (Admin Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <your_admin_token>"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/categories/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "categories", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "Get All Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/locations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "locations"]
+            }
+          }
+        },
+        {
+          "name": "Get Location by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/locations/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "locations", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Location (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer <your_admin_token>"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Room 301\",\n  \"type\": \"Classroom\",\n  \"description\": \"Classroom in Block C\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/locations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "locations"]
+            }
+          }
+        },
+        {
+          "name": "Update Location (Admin Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer <your_admin_token>"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Room 301 - Block C\",\n  \"type\": \"Classroom\",\n  \"description\": \"Lecture room with 50 seats\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/locations/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "locations", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Location (Admin Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <your_admin_token>"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost/CampusCare/backend/public/locations/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["CampusCare", "backend", "public", "locations", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
