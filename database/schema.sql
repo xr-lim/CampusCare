@@ -2,8 +2,14 @@
 CREATE DATABASE IF NOT EXISTS campuscare;
 USE campuscare;
 
--- Drop table if it exists to allow for a clean reset during development
+-- Drop tables in dependency order to allow a clean reset during development.
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS status_updates;
+DROP TABLE IF EXISTS maintenance_requests;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS locations;
 DROP TABLE IF EXISTS users;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- Users Table for Registration and Login
 CREATE TABLE users (
