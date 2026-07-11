@@ -63,36 +63,7 @@ $app->get('/locations/{id}', function(Request $request, Response $response) use 
 // Create new location (Admin only)
 $app->post('/locations', function(Request $request, Response $response) use ($pdo) {
     try {
-        // Get JWT and verify role
-        $token = null;
-        $authHeader = $request->getHeader('Authorization');
-        
-        if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader[0], $matches)) {
-            $token = $matches[1];
-        }
-
-        if (!$token) {
-            $response->getBody()->write(json_encode([
-                "message" => "Missing authorization token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        $userData = verifyJwt($token);
-        if (!$userData) {
-            $response->getBody()->write(json_encode([
-                "message" => "Invalid or expired token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        if ($userData['role'] !== 'Admin') {
-            $response->getBody()->write(json_encode([
-                "message" => "Only admins can create locations"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
-        }
-
+       
         $data = $request->getParsedBody();
         $name = trim($data['name'] ?? '');
         $type = trim($data['type'] ?? '');
@@ -162,43 +133,14 @@ $app->post('/locations', function(Request $request, Response $response) use ($pd
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
-});
+})
+->add(new RoleMiddleware(['Admin']))
+->add(new JwtMiddleware());
 
 // Update location (Admin only)
 $app->put('/locations/{id}', function(Request $request, Response $response) use ($pdo) {
     try {
-        // Get JWT and verify role
-        $token = null;
-        $authHeader = $request->getHeader('Authorization');
-        
-        if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader[0], $matches)) {
-            $token = $matches[1];
-        }
-
-        if (!$token) {
-            $response->getBody()->write(json_encode([
-                "message" => "Missing authorization token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        $userData = verifyJwt($token);
-        if (!$userData) {
-            $response->getBody()->write(json_encode([
-                "message" => "Invalid or expired token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        if ($userData['role'] !== 'Admin') {
-            $response->getBody()->write(json_encode([
-                "message" => "Only admins can update locations"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
-        }
-
-        $id = $request->getAttribute('id');
-
+       
         // Validate ID
         if (!is_numeric($id) || $id <= 0) {
             $response->getBody()->write(json_encode([
@@ -287,43 +229,13 @@ $app->put('/locations/{id}', function(Request $request, Response $response) use 
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
-});
+})
+->add(new RoleMiddleware(['Admin']))
+->add(new JwtMiddleware());
 
 // Delete location (Admin only)
 $app->delete('/locations/{id}', function(Request $request, Response $response) use ($pdo) {
     try {
-        // Get JWT and verify role
-        $token = null;
-        $authHeader = $request->getHeader('Authorization');
-        
-        if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader[0], $matches)) {
-            $token = $matches[1];
-        }
-
-        if (!$token) {
-            $response->getBody()->write(json_encode([
-                "message" => "Missing authorization token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        $userData = verifyJwt($token);
-        if (!$userData) {
-            $response->getBody()->write(json_encode([
-                "message" => "Invalid or expired token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        if ($userData['role'] !== 'Admin') {
-            $response->getBody()->write(json_encode([
-                "message" => "Only admins can delete locations"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
-        }
-
-        $id = $request->getAttribute('id');
-
         // Validate ID
         if (!is_numeric($id) || $id <= 0) {
             $response->getBody()->write(json_encode([
@@ -368,16 +280,6 @@ $app->delete('/locations/{id}', function(Request $request, Response $response) u
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
-});
-
-// Helper function to verify JWT
-function verifyJwt($token) {
-    require_once '../config/jwt.php';
-    
-    try {
-        $decoded = JWT::decode($token, new \Firebase\JWT\Key($secret_key, 'HS256'));
-        return (array)$decoded;
-    } catch (Exception $e) {
-        return null;
-    }
-}
+})
+->add(new RoleMiddleware(['Admin']))
+->add(new JwtMiddleware());

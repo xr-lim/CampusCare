@@ -1,6 +1,6 @@
 -- Create the database if it doesn't exist yet
-CREATE DATABASE IF NOT EXISTS campus_maintenance;
-USE campus_maintenance;
+CREATE DATABASE IF NOT EXISTS campuscare;
+USE campuscare;
 
 -- Drop tables in reverse order of dependencies to allow for a clean reset during development
 DROP TABLE IF EXISTS status_updates;
@@ -61,7 +61,7 @@ CREATE TABLE maintenance_requests (
 CREATE TABLE status_updates (
     id INT AUTO_INCREMENT PRIMARY KEY,
     request_id INT NOT NULL,
-    updated_by INT NOT NULL,
+    updated_by INT,
     status ENUM('Pending', 'Assigned', 'In Progress', 'Completed', 'Cancelled') NOT NULL,
     remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

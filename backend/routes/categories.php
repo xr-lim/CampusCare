@@ -63,36 +63,7 @@ $app->get('/categories/{id}', function(Request $request, Response $response) use
 // Create new category (Admin only)
 $app->post('/categories', function(Request $request, Response $response) use ($pdo) {
     try {
-        // Get JWT and verify role
-        $token = null;
-        $authHeader = $request->getHeader('Authorization');
         
-        if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader[0], $matches)) {
-            $token = $matches[1];
-        }
-
-        if (!$token) {
-            $response->getBody()->write(json_encode([
-                "message" => "Missing authorization token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        $userData = verifyJwt($token);
-        if (!$userData) {
-            $response->getBody()->write(json_encode([
-                "message" => "Invalid or expired token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        if ($userData['role'] !== 'Admin') {
-            $response->getBody()->write(json_encode([
-                "message" => "Only admins can create categories"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
-        }
-
         $data = $request->getParsedBody();
         $name = trim($data['name'] ?? '');
         $description = trim($data['description'] ?? '');
@@ -146,50 +117,13 @@ $app->post('/categories', function(Request $request, Response $response) use ($p
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
-});
+})
+->add(new RoleMiddleware(['Admin']))
+->add(new JwtMiddleware());
 
 // Update category (Admin only)
 $app->put('/categories/{id}', function(Request $request, Response $response) use ($pdo) {
     try {
-        // Get JWT and verify role
-        $token = null;
-        $authHeader = $request->getHeader('Authorization');
-        
-        if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader[0], $matches)) {
-            $token = $matches[1];
-        }
-
-        if (!$token) {
-            $response->getBody()->write(json_encode([
-                "message" => "Missing authorization token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        $userData = verifyJwt($token);
-        if (!$userData) {
-            $response->getBody()->write(json_encode([
-                "message" => "Invalid or expired token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        if ($userData['role'] !== 'Admin') {
-            $response->getBody()->write(json_encode([
-                "message" => "Only admins can update categories"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
-        }
-
-        $id = $request->getAttribute('id');
-
-        // Validate ID
-        if (!is_numeric($id) || $id <= 0) {
-            $response->getBody()->write(json_encode([
-                "message" => "Invalid category ID"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-        }
 
         // Check if category exists
         $checkStmt = $pdo->prepare("SELECT * FROM categories WHERE id = ?");
@@ -255,43 +189,14 @@ $app->put('/categories/{id}', function(Request $request, Response $response) use
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
-});
+})
+->add(new RoleMiddleware(['Admin']))
+->add(new JwtMiddleware());
 
 // Delete category (Admin only)
 $app->delete('/categories/{id}', function(Request $request, Response $response) use ($pdo) {
     try {
-        // Get JWT and verify role
-        $token = null;
-        $authHeader = $request->getHeader('Authorization');
-        
-        if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader[0], $matches)) {
-            $token = $matches[1];
-        }
-
-        if (!$token) {
-            $response->getBody()->write(json_encode([
-                "message" => "Missing authorization token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        $userData = verifyJwt($token);
-        if (!$userData) {
-            $response->getBody()->write(json_encode([
-                "message" => "Invalid or expired token"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        if ($userData['role'] !== 'Admin') {
-            $response->getBody()->write(json_encode([
-                "message" => "Only admins can delete categories"
-            ]));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
-        }
-
-        $id = $request->getAttribute('id');
-
+       
         // Validate ID
         if (!is_numeric($id) || $id <= 0) {
             $response->getBody()->write(json_encode([
@@ -336,16 +241,6 @@ $app->delete('/categories/{id}', function(Request $request, Response $response) 
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
-});
-
-// Helper function to verify JWT
-function verifyJwt($token) {
-    require_once '../config/jwt.php';
-    
-    try {
-        $decoded = JWT::decode($token, new \Firebase\JWT\Key($secret_key, 'HS256'));
-        return (array)$decoded;
-    } catch (Exception $e) {
-        return null;
-    }
-}
+})
+->add(new RoleMiddleware(['Admin']))
+->add(new JwtMiddleware());

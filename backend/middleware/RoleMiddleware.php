@@ -5,7 +5,7 @@ class RoleMiddleware {
 
     public function __construct($roles)
     {
-        $this->roles = $roles;
+        $this->roles = is_array($roles) ? $roles : [$roles];
     }
 
     public function __invoke($request,$handler)
