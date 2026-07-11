@@ -6,6 +6,17 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 require_once '../middleware/JwtMiddleware.php';
 require_once '../config/database.php';
 
+function jsonResponse(Response $response, array $data, int $status = 200)
+{
+    $response->getBody()->write(json_encode($data));
+    return $response->withHeader('Content-Type', 'application/json')->withStatus($status);
+}
+
+function isTechnician($jwt)
+{
+    return isset($jwt->role) && strtolower($jwt->role) === 'technician';
+}
+
 function validateRequestData($data)
 {
     $errors = [];
@@ -118,6 +129,92 @@ if (!empty($errors)) {
     } catch (PDOException $e) {
         $response->getBody()->write(json_encode(["message" => "Database error: " . $e->getMessage()]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+})->add(new JwtMiddleware());
+
+// View requests assigned to the authenticated technician.
+$app->get('/technician/requests', function (Request $request, Response $response) use ($pdo) {
+    $jwt = $request->getAttribute('user');
+
+    if (!isTechnician($jwt)) {
+        return jsonResponse($response, ["message" => "Technician access required"], 403);
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT mr.id, mr.title, mr.description, mr.priority, mr.status,
+                   mr.created_at, mr.updated_at, c.name AS category_name,
+                   l.name AS location_name, submitter.username AS requester_name,
+                   latest.update_notes AS latest_notes
+            FROM maintenance_requests mr
+            INNER JOIN categories c ON c.id = mr.category_id
+            INNER JOIN locations l ON l.id = mr.location_id
+            INNER JOIN users submitter ON submitter.id = mr.user_id
+            LEFT JOIN status_updates latest ON latest.id = (
+                SELECT su.id FROM status_updates su
+                WHERE su.request_id = mr.id
+                ORDER BY su.updated_at DESC, su.id DESC LIMIT 1
+            )
+            WHERE mr.assigned_technician_id = ?
+            AND mr.status NOT IN ('Cancelled', 'Rejected')
+            ORDER BY FIELD(mr.status, 'In Progress', 'Assigned', 'Completed'),
+                     FIELD(mr.priority, 'High', 'Medium', 'Low'), mr.created_at DESC
+        ");
+        $stmt->execute([$jwt->id]);
+        return jsonResponse($response, $stmt->fetchAll(PDO::FETCH_ASSOC));
+    } catch (PDOException $e) {
+        return jsonResponse($response, ["message" => "Unable to load assigned requests"], 500);
+    }
+})->add(new JwtMiddleware());
+
+// Update the status of a request assigned to the authenticated technician.
+$app->put('/technician/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
+    $jwt = $request->getAttribute('user');
+    $data = $request->getParsedBody() ?: [];
+    $status = trim($data['status'] ?? '');
+    $notes = trim($data['notes'] ?? '');
+
+    if (!isTechnician($jwt)) {
+        return jsonResponse($response, ["message" => "Technician access required"], 403);
+    }
+    if (!in_array($status, ['In Progress', 'Completed'], true)) {
+        return jsonResponse($response, ["message" => "Status must be In Progress or Completed"], 400);
+    }
+    if ($notes === '') {
+        return jsonResponse($response, ["message" => "Update notes are required"], 400);
+    }
+    if (strlen($notes) > 1000) {
+        return jsonResponse($response, ["message" => "Update notes must not exceed 1000 characters"], 400);
+    }
+
+    try {
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare("SELECT status FROM maintenance_requests WHERE id = ? AND assigned_technician_id = ? FOR UPDATE");
+        $stmt->execute([$args['id'], $jwt->id]);
+        $currentStatus = $stmt->fetchColumn();
+
+        if ($currentStatus === false) {
+            $pdo->rollBack();
+            return jsonResponse($response, ["message" => "Assigned request not found"], 404);
+        }
+
+        $allowed = ($currentStatus === 'Assigned' && $status === 'In Progress') ||
+                   ($currentStatus === 'In Progress' && $status === 'Completed');
+        if (!$allowed) {
+            $pdo->rollBack();
+            return jsonResponse($response, ["message" => "Invalid status transition from {$currentStatus} to {$status}"], 400);
+        }
+
+        $stmt = $pdo->prepare("UPDATE maintenance_requests SET status = ? WHERE id = ? AND assigned_technician_id = ?");
+        $stmt->execute([$status, $args['id'], $jwt->id]);
+        $stmt = $pdo->prepare("INSERT INTO status_updates (request_id, status, updated_by, update_notes) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$args['id'], $status, $jwt->id, $notes]);
+        $pdo->commit();
+
+        return jsonResponse($response, ["message" => "Request status updated successfully"]);
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return jsonResponse($response, ["message" => "Unable to update request status"], 500);
     }
 })->add(new JwtMiddleware());
 

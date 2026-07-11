@@ -27,3 +27,11 @@ export const updateRequest = (id, data) => {
 export const cancelRequest = (id) => {
     return api.delete(`/requests/${id}`)
 }
+
+export const getAssignedRequests = () => {
+    return api.get('/technician/requests')
+}
+
+export const updateAssignedRequest = (id, data) => {
+    return api.put(`/technician/requests/${id}`, data)
+}

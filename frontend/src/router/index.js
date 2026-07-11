@@ -15,6 +15,7 @@ import SubmitRequestView from '../views/SubmitRequestView.vue'
 import MyRequestsView from '../views/MyRequestsView.vue'
 import RequestDetailsView from '../views/RequestDetailsView.vue'
 import EditRequestView from '../views/EditRequestView.vue'
+import TechnicianRequestsView from '../views/TechnicianRequestsView.vue'
 
 const routes = [
   {
@@ -86,6 +87,15 @@ const routes = [
         }
       },
       {
+        path: 'assigned-tasks',
+        name: 'AssignedTasks',
+        component: TechnicianRequestsView,
+        meta: {
+          requiresAuth: true,
+          role: 'technician'
+        }
+      },
+      {
         path: 'profile',
         name: 'Profile',
         component: ProfileView,
@@ -101,13 +111,13 @@ const router = createRouter({history:createWebHistory(), routes})
 
 router.beforeEach((to)=>{
     const token = localStorage.getItem('token')
-    const user = JSON.parse(localStorage.getItem('user'))
+    const user = JSON.parse(localStorage.getItem('user') || 'null')
 
     if(to.meta.requiresAuth && !token){
       return '/login'
     }
 
-    if(to.meta.role && user.role !== to.meta.role){
+    if(to.meta.role && user?.role?.toLowerCase() !== to.meta.role.toLowerCase()){
       return '/home'
     }
 })
