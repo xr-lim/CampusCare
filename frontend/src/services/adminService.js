@@ -13,4 +13,7 @@ export const assignTechnician = (id, technicianId) =>
     technician_id: technicianId
   })
 
+export const rejectAdminRequest = (id, reason) =>
+  api.put(`/admin/requests/${id}/reject`, { reason })
+
 export const getAdminRequestHistory = (id) => api.get(`/admin/requests/${id}/history`)

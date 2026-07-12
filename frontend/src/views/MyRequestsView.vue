@@ -18,11 +18,13 @@
                 <div>
                     <h3>{{ request.title }}</h3>
                     <p>{{ request.category_name }} - {{ request.location_name }}</p>
-                    <p>
-                        Priority: {{ request.priority }} |
-                        Status: {{ request.status }} |
-                        Created: {{ formatDate(request.created_at) }}
-                    </p>
+                    <div class="request-meta">
+                        <span>Priority: {{ request.priority }}</span>
+                        <span class="status-chip" :class="statusClass(request.status)">
+                            {{ request.status }}
+                        </span>
+                        <span>Created: {{ formatDate(request.created_at) }}</span>
+                    </div>
                 </div>
 
                 <div class="request-actions">
@@ -113,6 +115,10 @@ export default {
 
         formatDate(date) {
             return new Date(date).toLocaleDateString()
+        },
+
+        statusClass(status) {
+            return status.toLowerCase().replaceAll(' ', '-')
         }
     }
 }
@@ -145,6 +151,20 @@ export default {
     color: #555;
 }
 
+.request-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-top: 10px;
+    color: #555;
+    font-size: .92rem;
+}
+
+.request-meta .status-chip {
+    padding: 5px 10px;
+}
+
 .request-actions {
     display: flex;
     align-items: center;
@@ -170,5 +190,15 @@ export default {
 .cancel-btn {
     background: #d32f2f;
     color: white;
+}
+
+@media (max-width: 720px) {
+    .request-item {
+        flex-direction: column;
+    }
+
+    .request-actions {
+        flex-wrap: wrap;
+    }
 }
 </style>

@@ -111,7 +111,7 @@
         </div>
 
         <aside class="detail-side-column">
-          <article class="dashboard-card">
+          <article v-if="canAssign" class="dashboard-card">
             <div class="card-section-title">
               <h2>Assign Technician</h2>
             </div>
@@ -129,6 +129,31 @@
 
               <button class="save-btn" type="submit" :disabled="assigning">
                 {{ assigning ? 'Assigning...' : 'Save Technician' }}
+              </button>
+            </form>
+          </article>
+
+          <article v-if="canReject" class="dashboard-card rejection-card">
+            <div class="card-section-title">
+              <h2>Reject Request</h2>
+            </div>
+            <p class="rejection-help">Reject this request only when there is a clear and valid reason. The reason will be visible in its status history.</p>
+            <form class="stack-form" @submit.prevent="submitRejection">
+              <div class="filter-field">
+                <label for="rejectionReason">Reason for rejection</label>
+                <textarea
+                  id="rejectionReason"
+                  v-model.trim="rejection.reason"
+                  rows="5"
+                  minlength="10"
+                  maxlength="1000"
+                  placeholder="Explain why this request cannot be accepted..."
+                  required
+                />
+                <small>{{ rejection.reason.length }}/1000 characters</small>
+              </div>
+              <button class="reject-btn" type="submit" :disabled="rejecting">
+                {{ rejecting ? 'Rejecting...' : 'Reject Request' }}
               </button>
             </form>
           </article>
@@ -151,7 +176,8 @@ import {
   assignTechnician,
   getAdminLookups,
   getAdminRequestById,
-  getAdminRequestHistory
+  getAdminRequestHistory,
+  rejectAdminRequest
 } from '../services/adminService'
 import { getRequestImage } from '../services/requestService'
 
@@ -163,6 +189,7 @@ export default {
     return {
       loading: true,
       assigning: false,
+      rejecting: false,
       requestItem: null,
       history: [],
       lookups: {
@@ -171,12 +198,21 @@ export default {
       },
       assignment: {
         technician_id: ''
+      },
+      rejection: {
+        reason: ''
       }
     }
   },
   computed: {
     requestId() {
       return this.$route.params.id
+    },
+    canReject() {
+      return ['Pending', 'Assigned'].includes(this.requestItem?.status)
+    },
+    canAssign() {
+      return ['Pending', 'Assigned'].includes(this.requestItem?.status)
     }
   },
   async mounted() {
@@ -262,6 +298,26 @@ export default {
         this.$refs.msgBox.show(message, 'error')
       } finally {
         this.assigning = false
+      }
+    },
+    async submitRejection() {
+      if (this.rejection.reason.length < 10) {
+        this.$refs.msgBox.show('Please provide a clear rejection reason of at least 10 characters.', 'error')
+        return
+      }
+      if (!window.confirm('Reject this maintenance request? This action will remove any technician assignment.')) return
+
+      this.rejecting = true
+      try {
+        const res = await rejectAdminRequest(this.requestId, this.rejection.reason)
+        this.rejection.reason = ''
+        this.$refs.msgBox.show(res.data.message || 'Maintenance request rejected successfully.', 'success')
+        await Promise.all([this.loadRequest(), this.loadHistory()])
+      } catch (error) {
+        const message = error.response?.data?.message || 'Unable to reject maintenance request.'
+        this.$refs.msgBox.show(message, 'error')
+      } finally {
+        this.rejecting = false
       }
     },
     statusClass(status) {

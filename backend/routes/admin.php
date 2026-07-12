@@ -302,8 +302,12 @@ $app->put('/admin/requests/{id}/assign', function (Request $request, Response $r
         return adminJsonResponse($response, ['message' => 'Invalid request id'], 400);
     }
 
-    if (!adminFindRequestSummary($pdo, $requestId)) {
+    $requestSummary = adminFindRequestSummary($pdo, $requestId);
+    if (!$requestSummary) {
         return adminJsonResponse($response, ['message' => 'Maintenance request not found'], 404);
+    }
+    if (!in_array($requestSummary['status'], ['Pending', 'Assigned'], true)) {
+        return adminJsonResponse($response, ['message' => 'Only pending or assigned requests can be assigned'], 409);
     }
 
     $data = $request->getParsedBody();
@@ -349,5 +353,49 @@ $app->put('/admin/requests/{id}/assign', function (Request $request, Response $r
         'message' => 'Technician assigned successfully',
         'technician' => $technician
     ]);
+})->add(new RoleMiddleware(['Admin']))->add(new JwtMiddleware());
+
+$app->put('/admin/requests/{id}/reject', function (Request $request, Response $response, array $args) use ($pdo) {
+    $requestId = adminValidateInteger($args['id'] ?? null);
+    if ($requestId === null) {
+        return adminJsonResponse($response, ['message' => 'Invalid request id'], 400);
+    }
+
+    $data = $request->getParsedBody() ?: [];
+    $reason = trim($data['reason'] ?? '');
+    if (strlen($reason) < 10) {
+        return adminJsonResponse($response, ['message' => 'Please provide a clear rejection reason of at least 10 characters'], 400);
+    }
+    if (strlen($reason) > 1000) {
+        return adminJsonResponse($response, ['message' => 'Rejection reason must not exceed 1000 characters'], 400);
+    }
+
+    $admin = $request->getAttribute('user');
+    try {
+        $pdo->beginTransaction();
+        $checkStmt = $pdo->prepare('SELECT status FROM maintenance_requests WHERE id = ? FOR UPDATE');
+        $checkStmt->execute([$requestId]);
+        $currentStatus = $checkStmt->fetchColumn();
+
+        if ($currentStatus === false) {
+            $pdo->rollBack();
+            return adminJsonResponse($response, ['message' => 'Maintenance request not found'], 404);
+        }
+        if (!in_array($currentStatus, ['Pending', 'Assigned'], true)) {
+            $pdo->rollBack();
+            return adminJsonResponse($response, ['message' => 'Only pending or assigned requests can be rejected'], 409);
+        }
+
+        $updateStmt = $pdo->prepare("UPDATE maintenance_requests SET status = 'Rejected', assigned_technician_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $updateStmt->execute([$requestId]);
+        $historyStmt = $pdo->prepare("INSERT INTO status_updates (request_id, status, updated_by, update_notes) VALUES (?, 'Rejected', ?, ?)");
+        $historyStmt->execute([$requestId, $admin->id, $reason]);
+        $pdo->commit();
+
+        return adminJsonResponse($response, ['message' => 'Maintenance request rejected successfully']);
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return adminJsonResponse($response, ['message' => 'Unable to reject maintenance request'], 500);
+    }
 })->add(new RoleMiddleware(['Admin']))->add(new JwtMiddleware());
 // Work-status transitions are restricted to assigned technicians in requests.php.
