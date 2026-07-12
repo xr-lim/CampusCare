@@ -17,7 +17,18 @@ export const getRequestById = (id) => {
 }
 
 export const createRequest = (data) => {
-    return api.post('/requests', data)
+    const formData = new FormData()
+    Object.entries(data).forEach(([key, value]) => {
+        if (key !== 'images') formData.append(key, value)
+    })
+    ;(data.images || []).forEach((image) => formData.append('images[]', image))
+    return api.post('/requests', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    })
+}
+
+export const getRequestImage = (id) => {
+    return api.get(`/request-images/${id}`, { responseType: 'blob' })
 }
 
 export const updateRequest = (id, data) => {

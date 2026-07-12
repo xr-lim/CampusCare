@@ -31,6 +31,11 @@
         </div>
 
         <p class="description">{{ task.description }}</p>
+        <div v-if="task.images?.length" class="attachment-gallery">
+          <a v-for="image in task.images" :key="image.id" :href="image.url" target="_blank" rel="noopener">
+            <img :src="image.url" :alt="image.original_filename">
+          </a>
+        </div>
         <p v-if="task.latest_notes" class="latest-note"><strong>Latest update:</strong> {{ task.latest_notes }}</p>
 
         <form v-if="nextStatus(task.status)" class="update-form" @submit.prevent="submitUpdate(task)">
@@ -55,7 +60,7 @@
 
 <script>
 import MessageBox from '../components/MessageBox.vue'
-import { getAssignedRequests, updateAssignedRequest } from '../services/requestService'
+import { getAssignedRequests, getRequestImage, updateAssignedRequest } from '../services/requestService'
 
 export default {
   components: { MessageBox },
@@ -63,12 +68,18 @@ export default {
     return { requests: [], notes: {}, loading: false, updatingId: null }
   },
   mounted() { this.loadRequests() },
+  beforeUnmount() { this.revokeImageUrls() },
   methods: {
     async loadRequests() {
       this.loading = true
       try {
         const response = await getAssignedRequests()
+        this.revokeImageUrls()
         this.requests = response.data
+        await Promise.all(this.requests.flatMap(task => (task.images || []).map(async image => {
+          const imageResponse = await getRequestImage(image.id)
+          image.url = URL.createObjectURL(imageResponse.data)
+        })))
       } catch (error) {
         this.$refs.msgBox.show(error.response?.data?.message || 'Unable to load assigned requests.', 'error')
       } finally {
@@ -79,6 +90,11 @@ export default {
       return status === 'Assigned' ? 'In Progress' : status === 'In Progress' ? 'Completed' : null
     },
     statusClass(status) { return status.toLowerCase().replaceAll(' ', '-') },
+    revokeImageUrls() {
+      this.requests.flatMap(task => task.images || []).forEach(image => {
+        if (image.url) URL.revokeObjectURL(image.url)
+      })
+    },
     async submitUpdate(task) {
       const status = this.nextStatus(task.status)
       if (!status || !this.notes[task.id]) return
@@ -100,4 +116,5 @@ export default {
 
 <style scoped>
 .page-heading,.task-heading,.task-meta,.update-form{display:flex}.page-heading,.task-heading{justify-content:space-between;gap:20px}.page-heading{align-items:center}.refresh-btn,.update-btn{border:0;border-radius:8px;background:#1e3a8a;color:#fff;padding:10px 16px;font:600 .9rem Poppins;cursor:pointer}.refresh-btn:disabled,.update-btn:disabled{opacity:.6;cursor:not-allowed}.task-list{display:grid;gap:18px}.task-card{border:1px solid #d6e0f5;border-radius:12px;padding:22px;background:#f8faff}.request-number{font-size:.78rem;color:#64748b}.task-card h3{margin:4px 0 0;color:#1e3a8a}.status-badge{height:max-content;border-radius:999px;padding:6px 12px;font-size:.8rem;font-weight:600;background:#dbeafe;color:#1e40af}.status-badge.in-progress{background:#fef3c7;color:#92400e}.status-badge.completed{background:#d1fae5;color:#065f46}.task-meta{flex-wrap:wrap;gap:8px 22px;margin:18px 0;color:#475569;font-size:.88rem}.description{color:#475569;line-height:1.65}.latest-note{padding:12px;background:#fff;border-left:3px solid #38bdf8;color:#475569}.update-form{flex-direction:column;gap:9px;margin-top:18px}.update-form label{font-weight:600;color:#1e3a8a}.update-form textarea{resize:vertical;border:1.5px solid #d6e0f5;border-radius:8px;padding:12px;font:inherit}.update-form textarea:focus{outline:none;border-color:#1e3a8a}.update-btn{align-self:flex-start}.completed-message{margin:18px 0 0;color:#047857;font-weight:600}.empty-state{color:#64748b}@media(max-width:700px){.page-heading,.task-heading{align-items:flex-start}.task-meta{flex-direction:column}.profile-card{padding:22px}}
+.attachment-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,190px));gap:12px;margin:16px 0}.attachment-gallery img{display:block;width:100%;height:130px;object-fit:cover;border-radius:9px;border:1px solid #d6e0f5}
 </style>

@@ -47,6 +47,18 @@
                 <textarea v-model="form.description" maxlength="1000" required></textarea>
             </div>
 
+            <div class="profile-field">
+                <label for="request-images">Images (optional)</label>
+                <input id="request-images" ref="imageInput" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple @change="selectImages">
+                <small class="upload-help">Up to 3 JPEG, PNG, or WebP images. Maximum 5 MB each.</small>
+                <div v-if="imagePreviews.length" class="image-previews">
+                    <div v-for="(preview, index) in imagePreviews" :key="preview.url" class="image-preview">
+                        <img :src="preview.url" :alt="preview.name">
+                        <button type="button" @click="removeImage(index)">Remove</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="profile-actions">
                 <button type="submit" class="save-btn" :disabled="loading">
                     {{ loading ? 'Submitting...' : 'Submit Request' }}
@@ -75,8 +87,10 @@ export default {
                 category_id: '',
                 location_id: '',
                 priority: 'Medium',
-                description: ''
-            }
+                description: '',
+                images: []
+            },
+            imagePreviews: []
         }
     },
 
@@ -84,7 +98,55 @@ export default {
         await this.loadOptions()
     },
 
+    beforeUnmount() {
+        this.clearPreviews()
+    },
+
     methods: {
+        selectImages(event) {
+            const files = Array.from(event.target.files)
+            if (files.length > 3) {
+                this.$refs.msgBox.show('You can upload a maximum of 3 images.', 'error')
+                event.target.value = ''
+                return
+            }
+
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+            const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp']
+            const unsupportedFile = files.find(file => {
+                const extension = file.name.split('.').pop()?.toLowerCase()
+                return !allowedTypes.includes(file.type) || !allowedExtensions.includes(extension)
+            })
+
+            if (unsupportedFile) {
+                this.$refs.msgBox.show(`Cannot accept "${unsupportedFile.name}". Only JPEG, JPG, PNG, and WebP images are allowed.`, 'error')
+                event.target.value = ''
+                return
+            }
+
+            const oversizedFile = files.find(file => file.size > 5 * 1024 * 1024)
+            if (oversizedFile) {
+                this.$refs.msgBox.show(`Cannot accept "${oversizedFile.name}" because it is larger than 5 MB.`, 'error')
+                event.target.value = ''
+                return
+            }
+            this.clearPreviews()
+            this.form.images = files
+            this.imagePreviews = files.map(file => ({ name: file.name, url: URL.createObjectURL(file) }))
+        },
+
+        removeImage(index) {
+            URL.revokeObjectURL(this.imagePreviews[index].url)
+            this.imagePreviews.splice(index, 1)
+            this.form.images.splice(index, 1)
+            if (!this.form.images.length) this.$refs.imageInput.value = ''
+        },
+
+        clearPreviews() {
+            this.imagePreviews.forEach(preview => URL.revokeObjectURL(preview.url))
+            this.imagePreviews = []
+        },
+
         async loadOptions() {
             try {
                 const [categoryRes, locationRes] = await Promise.all([
@@ -143,8 +205,11 @@ export default {
                     category_id: '',
                     location_id: '',
                     priority: 'Medium',
-                    description: ''
+                    description: '',
+                    images: []
                 }
+                this.clearPreviews()
+                this.$refs.imageInput.value = ''
             } catch (error) {
                 console.error(error)
 
@@ -173,6 +238,12 @@ export default {
     font-size: .95rem;
     box-sizing: border-box;
 }
+
+.upload-help { display:block; margin-top:8px; color:#64748b; }
+.image-previews { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 180px)); gap:14px; margin-top:14px; }
+.image-preview { position:relative; }
+.image-preview img { width:100%; height:130px; object-fit:cover; border-radius:10px; border:1px solid #d6e0f5; }
+.image-preview button { width:100%; margin-top:6px; border:0; background:#fee2e2; color:#991b1b; border-radius:7px; padding:7px; cursor:pointer; }
 
 .profile-field textarea {
     min-height: 140px;

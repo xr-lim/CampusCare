@@ -5,6 +5,7 @@ USE campuscare;
 -- Drop tables in dependency order to allow a clean reset during development.
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS status_updates;
+DROP TABLE IF EXISTS request_images;
 DROP TABLE IF EXISTS maintenance_requests;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS locations;
@@ -92,7 +93,20 @@ CREATE TABLE IF NOT EXISTS maintenance_requests (
     FOREIGN KEY (assigned_technician_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- 4. Status Updates Table (With Updated Status ENUM)
+-- 4. Request Images Table
+CREATE TABLE IF NOT EXISTS request_images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    request_id INT NOT NULL,
+    stored_filename VARCHAR(255) NOT NULL UNIQUE,
+    original_filename VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(50) NOT NULL,
+    file_size INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (request_id) REFERENCES maintenance_requests(id) ON DELETE CASCADE,
+    INDEX idx_request_images_request_id (request_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 5. Status Updates Table (With Updated Status ENUM)
 CREATE TABLE IF NOT EXISTS status_updates (
     id INT AUTO_INCREMENT PRIMARY KEY,
     request_id INT NOT NULL,

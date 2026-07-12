@@ -50,6 +50,15 @@
                 <p>{{ requestData.description }}</p>
             </div>
 
+            <div v-if="requestData.images?.length" class="detail-row">
+                <strong>Attached Images:</strong>
+                <div class="attachment-gallery">
+                    <a v-for="image in requestData.images" :key="image.id" :href="image.url" target="_blank" rel="noopener">
+                        <img :src="image.url" :alt="image.original_filename">
+                    </a>
+                </div>
+            </div>
+
             <div class="profile-actions">
                 <router-link to="/my-requests" class="small-btn">
                     Back
@@ -69,7 +78,7 @@
 
 <script>
 import MessageBox from '../components/MessageBox.vue'
-import { getRequestById } from '../services/requestService'
+import { getRequestById, getRequestImage } from '../services/requestService'
 
 export default {
     components: {
@@ -87,6 +96,10 @@ export default {
         await this.loadRequest()
     },
 
+    beforeUnmount() {
+        this.revokeImageUrls()
+    },
+
     methods: {
         async loadRequest() {
             this.loading = true
@@ -96,6 +109,7 @@ export default {
                 const res = await getRequestById(id)
 
                 this.requestData = res.data
+                await this.loadImages()
             } catch (error) {
                 console.error(error)
 
@@ -107,6 +121,19 @@ export default {
             } finally {
                 this.loading = false
             }
+        },
+
+        async loadImages() {
+            await Promise.all((this.requestData.images || []).map(async image => {
+                const response = await getRequestImage(image.id)
+                image.url = URL.createObjectURL(response.data)
+            }))
+        },
+
+        revokeImageUrls() {
+            ;(this.requestData?.images || []).forEach(image => {
+                if (image.url) URL.revokeObjectURL(image.url)
+            })
         },
 
         formatDate(date) {
@@ -153,4 +180,7 @@ export default {
     font-size: .9rem;
     margin-right: 10px;
 }
+
+.attachment-gallery { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 220px)); gap:14px; }
+.attachment-gallery img { display:block; width:100%; height:160px; object-fit:cover; border-radius:10px; border:1px solid #d6e0f5; }
 </style>

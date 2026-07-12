@@ -252,6 +252,10 @@ $app->get('/admin/requests/{id}', function (Request $request, Response $response
         return adminJsonResponse($response, ['message' => 'Maintenance request not found'], 404);
     }
 
+    $imageStmt = $pdo->prepare('SELECT id, original_filename, mime_type, file_size, created_at FROM request_images WHERE request_id = ? ORDER BY id');
+    $imageStmt->execute([$requestId]);
+    $requestDetails['images'] = $imageStmt->fetchAll(PDO::FETCH_ASSOC);
+
     return adminJsonResponse($response, [
         'request' => $requestDetails
     ]);

@@ -17,6 +17,45 @@ function isTechnician($jwt)
     return isset($jwt->role) && strtolower($jwt->role) === 'technician';
 }
 
+const REQUEST_IMAGE_LIMIT = 3;
+const REQUEST_IMAGE_MAX_BYTES = 5242880;
+
+function requestImageDirectory(): string
+{
+    return dirname(__DIR__) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'request_images';
+}
+
+function requestImageMetadata(PDO $pdo, int $requestId): array
+{
+    $stmt = $pdo->prepare('SELECT id, original_filename, mime_type, file_size, created_at FROM request_images WHERE request_id = ? ORDER BY id');
+    $stmt->execute([$requestId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function validateRequestImages(array $images): array
+{
+    if (count($images) > REQUEST_IMAGE_LIMIT) {
+        return ['A maximum of ' . REQUEST_IMAGE_LIMIT . ' images is allowed.'];
+    }
+
+    $errors = [];
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    foreach ($images as $image) {
+        if ($image->getError() !== UPLOAD_ERR_OK) {
+            $errors[] = 'One of the images could not be uploaded.';
+        } elseif ($image->getSize() > REQUEST_IMAGE_MAX_BYTES) {
+            $errors[] = 'Each image must be 5 MB or smaller.';
+        } else {
+            $detectedType = $finfo->file($image->getStream()->getMetadata('uri'));
+            if (!in_array($detectedType, $allowedTypes, true)) {
+                $errors[] = 'Images must be JPEG, PNG, or WebP files.';
+            }
+        }
+    }
+    return array_values(array_unique($errors));
+}
+
 function validateRequestData($data)
 {
     $errors = [];
@@ -65,7 +104,10 @@ function validateRequestData($data)
 // 1. Submit Request (Create)
 $app->post('/requests', function (Request $request, Response $response) use ($pdo) {
     $jwt = $request->getAttribute('user'); // Extract decrypted user info from JWT
-    $data = $request->getParsedBody();
+    $data = $request->getParsedBody() ?: [];
+    $uploadedFiles = $request->getUploadedFiles();
+    $images = $uploadedFiles['images'] ?? [];
+    if (!is_array($images)) $images = [$images];
 
     $title = isset($data['title']) ? trim($data['title']) : '';
     $description = isset($data['description']) ? trim($data['description']) : '';
@@ -74,7 +116,7 @@ $app->post('/requests', function (Request $request, Response $response) use ($pd
     $location_id = $data['location_id'] ?? null;
 
     // Backend Input Validation
-    $errors = validateRequestData($data);
+    $errors = array_merge(validateRequestData($data), validateRequestImages($images));
 
 if (!empty($errors)) {
     $response->getBody()->write(json_encode([
@@ -102,7 +144,9 @@ if (!empty($errors)) {
         return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
     }
 
+    $savedPaths = [];
     try {
+        $pdo->beginTransaction();
         // Insert request
         $stmt = $pdo->prepare("
             INSERT INTO maintenance_requests (title, description, priority, category_id, location_id, user_id, status) 
@@ -119,6 +163,27 @@ if (!empty($errors)) {
         ");
         $logStmt->execute([$newRequestId, $jwt->id]);
 
+        if ($images) {
+            $uploadDir = requestImageDirectory();
+            if (!is_dir($uploadDir) && !mkdir($uploadDir, 0750, true) && !is_dir($uploadDir)) {
+                throw new RuntimeException('Unable to create the image upload directory.');
+            }
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+            $imageStmt = $pdo->prepare('INSERT INTO request_images (request_id, stored_filename, original_filename, mime_type, file_size) VALUES (?, ?, ?, ?, ?)');
+            foreach ($images as $image) {
+                $mimeType = $finfo->file($image->getStream()->getMetadata('uri'));
+                $storedFilename = bin2hex(random_bytes(16)) . '.' . $extensions[$mimeType];
+                $path = $uploadDir . DIRECTORY_SEPARATOR . $storedFilename;
+                $image->moveTo($path);
+                $savedPaths[] = $path;
+                $originalName = basename((string) $image->getClientFilename());
+                $imageStmt->execute([$newRequestId, $storedFilename, substr($originalName, 0, 255), $mimeType, $image->getSize()]);
+            }
+        }
+
+        $pdo->commit();
+
         $response->getBody()->write(json_encode([
             "message" => "Maintenance request submitted successfully",
             "request_id" => $newRequestId
@@ -126,9 +191,12 @@ if (!empty($errors)) {
         
         return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
 
-    } catch (PDOException $e) {
-        $response->getBody()->write(json_encode(["message" => "Database error: " . $e->getMessage()]));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        foreach ($savedPaths as $path) {
+            if (is_file($path)) unlink($path);
+        }
+        return jsonResponse($response, ["message" => "Unable to submit maintenance request."], 500);
     }
 })->add(new JwtMiddleware());
 
@@ -161,7 +229,12 @@ $app->get('/technician/requests', function (Request $request, Response $response
                      FIELD(mr.priority, 'High', 'Medium', 'Low'), mr.created_at DESC
         ");
         $stmt->execute([$jwt->id]);
-        return jsonResponse($response, $stmt->fetchAll(PDO::FETCH_ASSOC));
+        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($items as &$item) {
+            $item['images'] = requestImageMetadata($pdo, (int) $item['id']);
+        }
+        unset($item);
+        return jsonResponse($response, $items);
     } catch (PDOException $e) {
         return jsonResponse($response, ["message" => "Unable to load assigned requests"], 500);
     }
@@ -262,6 +335,29 @@ $app->get('/requests/my', function (Request $request, Response $response) use ($
     }
 })->add(new JwtMiddleware());
 
+// Retrieve a protected request attachment.
+$app->get('/request-images/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
+    $jwt = $request->getAttribute('user');
+    $stmt = $pdo->prepare('SELECT ri.stored_filename, ri.original_filename, ri.mime_type, mr.user_id, mr.assigned_technician_id FROM request_images ri INNER JOIN maintenance_requests mr ON mr.id = ri.request_id WHERE ri.id = ?');
+    $stmt->execute([$args['id']]);
+    $image = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$image) return jsonResponse($response, ['message' => 'Image not found'], 404);
+    $role = strtolower($jwt->role ?? '');
+    $allowed = (int) $image['user_id'] === (int) $jwt->id
+        || (int) $image['assigned_technician_id'] === (int) $jwt->id
+        || $role === 'admin';
+    if (!$allowed) return jsonResponse($response, ['message' => 'Access denied'], 403);
+
+    $path = requestImageDirectory() . DIRECTORY_SEPARATOR . basename($image['stored_filename']);
+    if (!is_file($path)) return jsonResponse($response, ['message' => 'Image file not found'], 404);
+    $response->getBody()->write(file_get_contents($path));
+    return $response
+        ->withHeader('Content-Type', $image['mime_type'])
+        ->withHeader('Content-Disposition', 'inline')
+        ->withHeader('Cache-Control', 'private, max-age=3600');
+})->add(new JwtMiddleware());
+
 // 3. View Request Details (Read Single)
 $app->get('/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
     $jwt = $request->getAttribute('user');
@@ -303,6 +399,7 @@ $app->get('/requests/{id}', function (Request $request, Response $response, arra
                 ->withStatus(404);
         }
 
+        $requestData['images'] = requestImageMetadata($pdo, (int) $id);
         $response->getBody()->write(json_encode($requestData));
 
         return $response

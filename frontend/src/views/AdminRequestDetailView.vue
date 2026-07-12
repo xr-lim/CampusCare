@@ -33,6 +33,15 @@
                 <p>{{ requestItem.description }}</p>
               </div>
 
+              <div v-if="requestItem.images?.length" class="detail-field detail-field--full">
+                <label>Attached Images</label>
+                <div class="attachment-gallery">
+                  <a v-for="image in requestItem.images" :key="image.id" :href="image.url" target="_blank" rel="noopener">
+                    <img :src="image.url" :alt="image.original_filename">
+                  </a>
+                </div>
+              </div>
+
               <div class="detail-field">
                 <label>Requester</label>
                 <p>{{ requestItem.requester_name }}</p>
@@ -177,6 +186,7 @@ import {
   getAdminRequestHistory,
   updateAdminRequestStatus
 } from '../services/adminService'
+import { getRequestImage } from '../services/requestService'
 
 export default {
   components: {
@@ -209,6 +219,9 @@ export default {
   },
   async mounted() {
     await this.loadPage()
+  },
+  beforeUnmount() {
+    this.revokeImageUrls()
   },
   methods: {
     async loadPage() {
@@ -244,6 +257,10 @@ export default {
       try {
         const res = await getAdminRequestById(this.requestId)
         this.requestItem = res.data.request
+        await Promise.all((this.requestItem.images || []).map(async image => {
+          const imageResponse = await getRequestImage(image.id)
+          image.url = URL.createObjectURL(imageResponse.data)
+        }))
         this.assignment.technician_id = this.requestItem.technician_id
           ? String(this.requestItem.technician_id)
           : ''
@@ -260,6 +277,11 @@ export default {
         const message = error.response?.data?.message || 'Unable to load request history.'
         this.$refs.msgBox.show(message, 'error')
       }
+    },
+    revokeImageUrls() {
+      ;(this.requestItem?.images || []).forEach(image => {
+        if (image.url) URL.revokeObjectURL(image.url)
+      })
     },
     async submitAssignment() {
       if (!this.assignment.technician_id) {
