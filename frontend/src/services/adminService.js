@@ -13,7 +13,4 @@ export const assignTechnician = (id, technicianId) =>
     technician_id: technicianId
   })
 
-export const updateAdminRequestStatus = (id, payload) =>
-  api.put(`/admin/requests/${id}/status`, payload)
-
 export const getAdminRequestHistory = (id) => api.get(`/admin/requests/${id}/history`)

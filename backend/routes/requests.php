@@ -4,6 +4,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 require_once '../middleware/JwtMiddleware.php';
+require_once '../middleware/RoleMiddleware.php';
 require_once '../config/database.php';
 
 function jsonResponse(Response $response, array $data, int $status = 200)
@@ -198,7 +199,7 @@ if (!empty($errors)) {
         }
         return jsonResponse($response, ["message" => "Unable to submit maintenance request."], 500);
     }
-})->add(new JwtMiddleware());
+})->add(new RoleMiddleware(['Student', 'Staff']))->add(new JwtMiddleware());
 
 // View requests assigned to the authenticated technician.
 $app->get('/technician/requests', function (Request $request, Response $response) use ($pdo) {
@@ -229,16 +230,47 @@ $app->get('/technician/requests', function (Request $request, Response $response
                      FIELD(mr.priority, 'High', 'Medium', 'Low'), mr.created_at DESC
         ");
         $stmt->execute([$jwt->id]);
-        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($items as &$item) {
-            $item['images'] = requestImageMetadata($pdo, (int) $item['id']);
-        }
-        unset($item);
-        return jsonResponse($response, $items);
+        return jsonResponse($response, $stmt->fetchAll(PDO::FETCH_ASSOC));
     } catch (PDOException $e) {
         return jsonResponse($response, ["message" => "Unable to load assigned requests"], 500);
     }
-})->add(new JwtMiddleware());
+})->add(new RoleMiddleware(['Technician']))->add(new JwtMiddleware());
+
+// View one request assigned to the authenticated technician.
+$app->get('/technician/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
+    $jwt = $request->getAttribute('user');
+    try {
+        $stmt = $pdo->prepare("
+            SELECT mr.id, mr.title, mr.description, mr.priority, mr.status,
+                   mr.created_at, mr.updated_at, c.name AS category_name,
+                   l.name AS location_name, submitter.username AS requester_name,
+                   submitter.email AS requester_email
+            FROM maintenance_requests mr
+            INNER JOIN categories c ON c.id = mr.category_id
+            INNER JOIN locations l ON l.id = mr.location_id
+            INNER JOIN users submitter ON submitter.id = mr.user_id
+            WHERE mr.id = ? AND mr.assigned_technician_id = ?
+              AND mr.status NOT IN ('Cancelled', 'Rejected')
+        ");
+        $stmt->execute([$args['id'], $jwt->id]);
+        $item = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$item) return jsonResponse($response, ['message' => 'Assigned request not found'], 404);
+
+        $item['images'] = requestImageMetadata($pdo, (int) $item['id']);
+        $historyStmt = $pdo->prepare("
+            SELECT su.status, su.update_notes, su.updated_at, u.username AS updated_by_name
+            FROM status_updates su
+            INNER JOIN users u ON u.id = su.updated_by
+            WHERE su.request_id = ?
+            ORDER BY su.updated_at DESC, su.id DESC
+        ");
+        $historyStmt->execute([$item['id']]);
+        $item['history'] = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
+        return jsonResponse($response, $item);
+    } catch (PDOException $e) {
+        return jsonResponse($response, ['message' => 'Unable to load assigned request'], 500);
+    }
+})->add(new RoleMiddleware(['Technician']))->add(new JwtMiddleware());
 
 // Update the status of a request assigned to the authenticated technician.
 $app->put('/technician/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
@@ -289,7 +321,7 @@ $app->put('/technician/requests/{id}', function (Request $request, Response $res
         if ($pdo->inTransaction()) $pdo->rollBack();
         return jsonResponse($response, ["message" => "Unable to update request status"], 500);
     }
-})->add(new JwtMiddleware());
+})->add(new RoleMiddleware(['Technician']))->add(new JwtMiddleware());
 
 // 2. View My Requests (Read List)
 $app->get('/requests/my', function (Request $request, Response $response) use ($pdo) {
@@ -333,7 +365,7 @@ $app->get('/requests/my', function (Request $request, Response $response) use ($
             ->withHeader('Content-Type', 'application/json')
             ->withStatus(500);
     }
-})->add(new JwtMiddleware());
+})->add(new RoleMiddleware(['Student', 'Staff']))->add(new JwtMiddleware());
 
 // Retrieve a protected request attachment.
 $app->get('/request-images/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
@@ -415,7 +447,7 @@ $app->get('/requests/{id}', function (Request $request, Response $response, arra
             ->withHeader('Content-Type', 'application/json')
             ->withStatus(500);
     }
-})->add(new JwtMiddleware());
+})->add(new RoleMiddleware(['Student', 'Staff']))->add(new JwtMiddleware());
 
 // 4. Edit Pending Request (Update)
 $app->put('/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
@@ -530,7 +562,7 @@ $app->put('/requests/{id}', function (Request $request, Response $response, arra
             ->withHeader('Content-Type', 'application/json')
             ->withStatus(500);
     }
-})->add(new JwtMiddleware());
+})->add(new RoleMiddleware(['Student', 'Staff']))->add(new JwtMiddleware());
 
 // 5. Cancel Pending Request (Delete/Cancel)
 $app->delete('/requests/{id}', function (Request $request, Response $response, array $args) use ($pdo) {
@@ -598,4 +630,4 @@ $app->delete('/requests/{id}', function (Request $request, Response $response, a
             ->withHeader('Content-Type', 'application/json')
             ->withStatus(500);
     }
-})->add(new JwtMiddleware());
+})->add(new RoleMiddleware(['Student', 'Staff']))->add(new JwtMiddleware());

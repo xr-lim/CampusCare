@@ -11,6 +11,7 @@ import MyRequestsView from '../views/MyRequestsView.vue'
 import RequestDetailsView from '../views/RequestDetailsView.vue'
 import EditRequestView from '../views/EditRequestView.vue'
 import TechnicianRequestsView from '../views/TechnicianRequestsView.vue'
+import TechnicianRequestDetailView from '../views/TechnicianRequestDetailView.vue'
 import AdminDashboardView from '../views/AdminDashboardView.vue'
 import AdminRequestsView from '../views/AdminRequestsView.vue'
 import AdminRequestDetailView from '../views/AdminRequestDetailView.vue'
@@ -58,7 +59,8 @@ const routes = [
         name: 'SubmitRequest',
         component: SubmitRequestView,
         meta: {
-          requiresAuth: true
+          requiresAuth: true,
+          roles: ['Student', 'Staff']
         }
       },
       {
@@ -66,7 +68,8 @@ const routes = [
         name: 'MyRequests',
         component: MyRequestsView,
         meta: {
-          requiresAuth: true
+          requiresAuth: true,
+          roles: ['Student', 'Staff']
         }
       },
       {
@@ -74,7 +77,8 @@ const routes = [
         name: 'RequestDetails',
         component: RequestDetailsView,
         meta: {
-          requiresAuth: true
+          requiresAuth: true,
+          roles: ['Student', 'Staff']
         }
       },
       {
@@ -82,13 +86,23 @@ const routes = [
         name: 'EditRequest',
         component: EditRequestView,
         meta: {
-          requiresAuth: true
+          requiresAuth: true,
+          roles: ['Student', 'Staff']
         }
       },
       {
         path: 'assigned-tasks',
         name: 'AssignedTasks',
         component: TechnicianRequestsView,
+        meta: {
+          requiresAuth: true,
+          role: 'technician'
+        }
+      },
+      {
+        path: 'assigned-tasks/:id',
+        name: 'AssignedTaskDetails',
+        component: TechnicianRequestDetailView,
         meta: {
           requiresAuth: true,
           role: 'technician'

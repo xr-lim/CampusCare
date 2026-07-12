@@ -133,38 +133,6 @@
             </form>
           </article>
 
-          <article class="dashboard-card">
-            <div class="card-section-title">
-              <h2>Update Status</h2>
-            </div>
-
-            <form class="stack-form" @submit.prevent="submitStatusUpdate">
-              <div class="filter-field">
-                <label for="statusUpdate">New Status</label>
-                <select id="statusUpdate" v-model="statusForm.status" required>
-                  <option value="" disabled>Select a status</option>
-                  <option v-for="status in lookups.statuses" :key="status" :value="status">
-                    {{ status }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="filter-field">
-                <label for="remarks">Admin Remarks</label>
-                <textarea
-                  id="remarks"
-                  v-model.trim="statusForm.remarks"
-                  rows="4"
-                  maxlength="1000"
-                  placeholder="Optional remarks for the status update"
-                />
-              </div>
-
-              <button class="save-btn" type="submit" :disabled="updatingStatus">
-                {{ updatingStatus ? 'Updating...' : 'Update Status' }}
-              </button>
-            </form>
-          </article>
         </aside>
       </section>
     </template>
@@ -183,8 +151,7 @@ import {
   assignTechnician,
   getAdminLookups,
   getAdminRequestById,
-  getAdminRequestHistory,
-  updateAdminRequestStatus
+  getAdminRequestHistory
 } from '../services/adminService'
 import { getRequestImage } from '../services/requestService'
 
@@ -196,7 +163,6 @@ export default {
     return {
       loading: true,
       assigning: false,
-      updatingStatus: false,
       requestItem: null,
       history: [],
       lookups: {
@@ -205,10 +171,6 @@ export default {
       },
       assignment: {
         technician_id: ''
-      },
-      statusForm: {
-        status: '',
-        remarks: ''
       }
     }
   },
@@ -300,29 +262,6 @@ export default {
         this.$refs.msgBox.show(message, 'error')
       } finally {
         this.assigning = false
-      }
-    },
-    async submitStatusUpdate() {
-      if (!this.statusForm.status) {
-        this.$refs.msgBox.show('Please choose a status before submitting.', 'error')
-        return
-      }
-
-      this.updatingStatus = true
-
-      try {
-        const res = await updateAdminRequestStatus(this.requestId, this.statusForm)
-        this.$refs.msgBox.show(res.data.message || 'Request status updated successfully.', 'success')
-        this.statusForm = {
-          status: '',
-          remarks: ''
-        }
-        await Promise.all([this.loadRequest(), this.loadHistory()])
-      } catch (error) {
-        const message = error.response?.data?.message || 'Unable to update request status.'
-        this.$refs.msgBox.show(message, 'error')
-      } finally {
-        this.updatingStatus = false
       }
     },
     statusClass(status) {

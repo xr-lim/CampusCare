@@ -43,6 +43,10 @@ export const getAssignedRequests = () => {
     return api.get('/technician/requests')
 }
 
+export const getAssignedRequestById = (id) => {
+    return api.get(`/technician/requests/${id}`)
+}
+
 export const updateAssignedRequest = (id, data) => {
     return api.put(`/technician/requests/${id}`, data)
 }
