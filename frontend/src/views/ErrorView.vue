@@ -38,6 +38,10 @@
             },
 
             errorTitle(){
+                if (this.$route.query.message) {
+                    return this.$route.query.message
+                }
+                
                 switch(this.errorCode){
                     case 401:
                         return "Session Expired"

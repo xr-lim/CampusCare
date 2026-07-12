@@ -26,20 +26,29 @@ api.interceptors.request.use(
 )
 
 api.interceptors.response.use(
-    (response) => {
-        return response
-    },
+    response => response,
 
-    (error) => {
-        if(error.response?.status === 401){
+    error => {
+
+        const status = error.response?.status
+        const url = error.config?.url
+        const message = error.response?.data?.message || ''
+
+        if (status === 401 && url === '/login') {
+            return Promise.reject(error)
+        }
+
+        if (status === 401) {
             localStorage.removeItem('token')
             localStorage.removeItem('user')
 
-            window.location.href = '/error?code=401'
+            window.location.href =
+                `/error?code=401&message=${encodeURIComponent(message)}`
         }
 
-        if(error.response?.status === 403){
-            window.location.href = '/error?code=403'
+        if (status === 403) {
+            window.location.href =
+                `/error?code=403&message=${encodeURIComponent(message)}`
         }
 
         return Promise.reject(error)
